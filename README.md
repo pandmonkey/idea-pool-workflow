@@ -69,3 +69,7 @@ OPENAI_API_KEY=...             # OpenAI 或 OpenRouter 的 API Key
 OPENAI_BASE_URL=...            # 使用 OpenRouter 时填写（可选）
 OPENAI_MODEL=...               # 模型名，如 deepseek/deepseek-v3.2
 ```
+
+---
+
+Last updated: 2026-02-28

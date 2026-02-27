@@ -1,0 +1,29 @@
+name: idea-pool
+
+on:
+  schedule:
+    - cron: '0 2,10,18 * * *'  # 每天 UTC 02/10/18 点（北京时间 10/18/02 点）
+  workflow_dispatch:             # 支持在 GitHub 页面手动触发
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run idea-pool
+        env:
+          NOTION_TOKEN:            ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID:      ${{ secrets.NOTION_DATABASE_ID }}
+          NOTION_POOL_DATABASE_ID: ${{ secrets.NOTION_POOL_DATABASE_ID }}
+          OPENAI_API_KEY:          ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL:         ${{ secrets.OPENAI_BASE_URL }}
+          OPENAI_MODEL:            ${{ secrets.OPENAI_MODEL }}
+        run: python3 run.py
