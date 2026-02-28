@@ -115,6 +115,7 @@ class NotionIdeaDB:
         - mark_complete=True 时把"完成"打勾，触发滴答清单归档
         返回更新后的 page 对象。
         """
+        print(f"  🔍 [DEBUG] 开始更新分类，页面 ID: {page_id[:8]}...")
         props = {}
         schema = self._get_cached_schema()
 
@@ -122,6 +123,9 @@ class NotionIdeaDB:
         pool_field = NOTION_FIELDS["pool"]
         if pool_field in schema:
             props[pool_field] = {"select": {"name": category}}
+            print(f"  🔍 [DEBUG] 字段 '{pool_field}' 存在，设置为: {category}")
+        else:
+            print(f"  ⚠️  [DEBUG] 字段 '{pool_field}' 不存在，跳过")
 
         # --- 下一步行动（Rich Text 类型）---
         action_field = NOTION_FIELDS["next_action"]
@@ -129,21 +133,41 @@ class NotionIdeaDB:
             props[action_field] = {
                 "rich_text": [{"text": {"content": next_action}}]
             }
+            print(f"  🔍 [DEBUG] 字段 '{action_field}' 存在")
+        else:
+            print(f"  ⚠️  [DEBUG] 字段 '{action_field}' 不存在，跳过")
 
         # --- 处理状态（Select 类型）---
         status_field = NOTION_FIELDS["status"]
         if status_field in schema:
             props[status_field] = {"select": {"name": "已分类"}}
+            print(f"  🔍 [DEBUG] 字段 '{status_field}' 存在，设置为: 已分类")
+        else:
+            print(f"  ⚠️  [DEBUG] 字段 '{status_field}' 不存在，跳过")
 
         # --- 完成（Checkbox）→ 触发滴答清单归档 ---
         done_field = NOTION_FIELDS["done"]
         if mark_complete and done_field in schema:
             props[done_field] = {"checkbox": True}
+            print(f"  🔍 [DEBUG] 字段 '{done_field}' 存在，标记为完成")
+        else:
+            print(f"  ⚠️  [DEBUG] 字段 '{done_field}' {'不存在' if done_field not in schema else '跳过（未标记完成）'}")
 
         if not props:
+            print(f"  ⚠️  [DEBUG] 没有可更新的属性，跳过")
             return {}
 
-        return self.client.pages.update(page_id=page_id, properties=props)
+        print(f"  🔍 [DEBUG] 准备更新 {len(props)} 个属性")
+        try:
+            result = self.client.pages.update(page_id=page_id, properties=props)
+            print(f"  ✅ [DEBUG] 更新成功")
+            return result
+        except APIResponseError as e:
+            print(f"  ❌ [DEBUG] Notion API 错误: {e}")
+            raise
+        except Exception as e:
+            print(f"  ❌ [DEBUG] 未知错误: {type(e).__name__}: {e}")
+            raise
 
     # ──────────────────────────────────────────────
     # 字段提取辅助
@@ -268,9 +292,15 @@ class NotionIdeaDB:
         需在 .env 中设置 NOTION_POOL_DATABASE_ID。若未设置则返回 None。
         """
         pool_db_id = os.environ.get("NOTION_POOL_DATABASE_ID")
+        print(f"  🔍 [DEBUG] NOTION_POOL_DATABASE_ID: {'已设置' if pool_db_id else '❌ 未设置'}")
+        if pool_db_id:
+            print(f"  🔍 [DEBUG] Pool DB ID: {pool_db_id[:8]}...{pool_db_id[-4:]}")
         if not pool_db_id:
+            print("  ⚠️  NOTION_POOL_DATABASE_ID 未设置，跳过同步到想法池")
             return None
 
+        print(f"  🔄 [DEBUG] 正在同步到想法池: {short_title[:30]}...")
+        
         # 构建两段式描述：AI 摘要 + 原内容
         parts = []
         if summary:
@@ -299,7 +329,18 @@ class NotionIdeaDB:
         if tags:
             props["标签"] = {"multi_select": [{"name": t} for t in tags[:100]]}
 
-        return self.client.pages.create(
-            parent={"database_id": pool_db_id},
-            properties=props,
-        )
+        print(f"  🔍 [DEBUG] 准备创建页面，属性键: {list(props.keys())}")
+        
+        try:
+            result = self.client.pages.create(
+                parent={"database_id": pool_db_id},
+                properties=props,
+            )
+            print(f"  ✅ [DEBUG] 想法池同步成功，页面 ID: {result['id'][:8]}...")
+            return result
+        except APIResponseError as e:
+            print(f"  ❌ [DEBUG] Notion API 错误: {e}")
+            raise
+        except Exception as e:
+            print(f"  ❌ [DEBUG] 未知错误: {type(e).__name__}: {e}")
+            raise
