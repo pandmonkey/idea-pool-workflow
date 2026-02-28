@@ -20,6 +20,7 @@ jobs:
 
       - name: Run idea-pool
         env:
+          DESENSITIZE:             "1"   # 公开仓库：脱敏输出，避免想法被爬取
           NOTION_TOKEN:            ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID:      ${{ secrets.NOTION_DATABASE_ID }}
           NOTION_POOL_DATABASE_ID: ${{ secrets.NOTION_POOL_DATABASE_ID }}
