@@ -2,6 +2,13 @@ import os
 from typing import Optional
 
 from notion_client import Client
+
+
+def _desensitize() -> bool:
+    """与 run.py 一致：CI 或 DESENSITIZE=1 时脱敏"""
+    if os.environ.get("DESENSITIZE", "").lower() in ("0", "false", "no"):
+        return False
+    return bool(os.environ.get("GITHUB_ACTIONS") or os.environ.get("DESENSITIZE", "").lower() in ("1", "true", "yes"))
 from notion_client.errors import APIResponseError
 from config import NOTION_FIELDS
 
@@ -34,7 +41,8 @@ class NotionIdeaDB:
             for block in children.get("results", []):
                 if block.get("type") == "child_database":
                     db_id = block["id"]
-                    print(f"  ℹ️  检测到页面 ID，自动定位到子数据库：{db_id}")
+                    _did = "[已脱敏]" if _desensitize() else db_id
+                    print(f"  ℹ️  检测到页面 ID，自动定位到子数据库：{_did}")
                     return db_id
         except Exception:
             pass
@@ -115,7 +123,8 @@ class NotionIdeaDB:
         - mark_complete=True 时把"完成"打勾，触发滴答清单归档
         返回更新后的 page 对象。
         """
-        print(f"  🔍 [DEBUG] 开始更新分类，页面 ID: {page_id[:8]}...")
+        _id = "[已脱敏]" if _desensitize() else f"{page_id[:8]}..."
+        print(f"  🔍 [DEBUG] 开始更新分类，页面 ID: {_id}")
         props = {}
         schema = self._get_cached_schema()
 
@@ -123,7 +132,8 @@ class NotionIdeaDB:
         pool_field = NOTION_FIELDS["pool"]
         if pool_field in schema:
             props[pool_field] = {"select": {"name": category}}
-            print(f"  🔍 [DEBUG] 字段 '{pool_field}' 存在，设置为: {category}")
+            _cat = "[已脱敏]" if _desensitize() else category
+            print(f"  🔍 [DEBUG] 字段 '{pool_field}' 存在，设置为: {_cat}")
         else:
             print(f"  ⚠️  [DEBUG] 字段 '{pool_field}' 不存在，跳过")
 
@@ -163,10 +173,12 @@ class NotionIdeaDB:
             print(f"  ✅ [DEBUG] 更新成功")
             return result
         except APIResponseError as e:
-            print(f"  ❌ [DEBUG] Notion API 错误: {e}")
+            _err = "[已脱敏]" if _desensitize() else str(e)
+            print(f"  ❌ [DEBUG] Notion API 错误: {_err}")
             raise
         except Exception as e:
-            print(f"  ❌ [DEBUG] 未知错误: {type(e).__name__}: {e}")
+            _err = "[已脱敏]" if _desensitize() else str(e)
+            print(f"  ❌ [DEBUG] 未知错误: {type(e).__name__}: {_err}")
             raise
 
     # ──────────────────────────────────────────────
@@ -294,12 +306,14 @@ class NotionIdeaDB:
         pool_db_id = os.environ.get("NOTION_POOL_DATABASE_ID")
         print(f"  🔍 [DEBUG] NOTION_POOL_DATABASE_ID: {'已设置' if pool_db_id else '❌ 未设置'}")
         if pool_db_id:
-            print(f"  🔍 [DEBUG] Pool DB ID: {pool_db_id[:8]}...{pool_db_id[-4:]}")
+            _pid = "[已脱敏]" if _desensitize() else f"{pool_db_id[:8]}...{pool_db_id[-4:]}"
+            print(f"  🔍 [DEBUG] Pool DB ID: {_pid}")
         if not pool_db_id:
             print("  ⚠️  NOTION_POOL_DATABASE_ID 未设置，跳过同步到想法池")
             return None
 
-        print(f"  🔄 [DEBUG] 正在同步到想法池: {short_title[:30]}...")
+        _title = "[已脱敏]" if _desensitize() else f"{short_title[:30]}..."
+        print(f"  🔄 [DEBUG] 正在同步到想法池: {_title}")
         
         # 构建两段式描述：AI 摘要 + 原内容
         parts = []
@@ -336,11 +350,14 @@ class NotionIdeaDB:
                 parent={"database_id": pool_db_id},
                 properties=props,
             )
-            print(f"  ✅ [DEBUG] 想法池同步成功，页面 ID: {result['id'][:8]}...")
+            _rid = "[已脱敏]" if _desensitize() else f"{result['id'][:8]}..."
+            print(f"  ✅ [DEBUG] 想法池同步成功，页面 ID: {_rid}")
             return result
         except APIResponseError as e:
-            print(f"  ❌ [DEBUG] Notion API 错误: {e}")
+            _err = "[已脱敏]" if _desensitize() else str(e)
+            print(f"  ❌ [DEBUG] Notion API 错误: {_err}")
             raise
         except Exception as e:
-            print(f"  ❌ [DEBUG] 未知错误: {type(e).__name__}: {e}")
+            _err = "[已脱敏]" if _desensitize() else str(e)
+            print(f"  ❌ [DEBUG] 未知错误: {type(e).__name__}: {_err}")
             raise
