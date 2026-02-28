@@ -100,8 +100,9 @@ def main():
     for var in env_vars:
         val = os.environ.get(var, "")
         if val:
-            # 只显示前后几位，保护敏感信息
-            if len(val) > 10:
+            if desensitize:
+                display = "[已脱敏]"
+            elif len(val) > 10:
                 display = f"{val[:4]}...{val[-4:]} (长度: {len(val)})"
             else:
                 display = f"{'*' * len(val)} (长度: {len(val)})"
