@@ -72,4 +72,4 @@ OPENAI_MODEL=...               # 模型名，如 deepseek/deepseek-v3.2
 
 ---
 
-Last updated: 2026-10-04
+Last updated: 2026-10-11
